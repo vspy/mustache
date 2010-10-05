@@ -25,14 +25,23 @@ const class Mustache
 internal const mixin MustacheToken {
   abstract Void render(StrBuf output, Obj? context)
 
-  Obj? valueOf(Str name, Obj? context) {
+  static Obj? valueOf(Str name, Obj? context) {
     if (context == null)
       return null
     else if (context is Map) 
       return (context as Map).get(name)
-    else 
-      return context.typeof.field(name,false)?.get(context)?:
-             context.typeof.method(name,false)?.call()
+    else {
+      slot := context.typeof.slot(name,false)
+      if (slot == null) return null
+
+      if (slot is Field)
+        return (slot as Field).get(context)
+
+      if (slot is Method)
+        return (slot as Method).call(context)
+
+      return null
+    }
   }
 
 }
