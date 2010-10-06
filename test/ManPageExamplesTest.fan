@@ -101,7 +101,20 @@ class ManPageExamplesTest : Test
 
   Void testPartials()
   {
-      //TODO: implement partials
+      userTemplate := Mustache("<strong>{{name}}</strong>".in)
+      baseTemplate := Mustache("<h2>Names</h2>
+                                {{#names}}
+                                  {{> user}}
+                                {{/names}}".in)
+      verifyEq(
+        baseTemplate.render(["names":[["name":"Alice"],["name":"Bob"]]],
+                          ["user":userTemplate]),
+        "<h2>Names</h2>
+         
+           <strong>Alice</strong>
+
+           <strong>Bob</strong>
+         ")
   }
 
 }

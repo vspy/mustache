@@ -2,14 +2,16 @@ const class Mustache
 {
   private const MustacheToken[] compiledTemplate
 
-  new make(InStream templateStream,Str otag:="{{", Str ctag:="}}") {
+  new make(InStream templateStream,
+          Str otag:="{{", 
+          Str ctag:="}}") {
     this.compiledTemplate = MustacheParser(templateStream,otag,ctag).parse
   }
 
-  Str render(Obj? context:=null) {
-    buf := StrBuf()
-    compiledTemplate.each { it.render(buf,context) }
-    return buf.toStr
+  Str render(Obj? context:=null, [Str:Mustache] partials:=[:]) {
+    StrBuf output:=StrBuf()
+    compiledTemplate.each { it.render(output,context,partials) }
+    return output.toStr
   }
 
 }
@@ -139,6 +141,9 @@ internal class MustacheParser
         stack.add(IncompleteSection(content[1..-1], true))
       case '#':
         stack.add(IncompleteSection(content[1..-1], false))
+      case '>':
+      case '<':
+        stack.add(PartialToken(content[1..-1]))
       case '/': 
         name := content[1..-1]
         MustacheToken[] children := [,]
@@ -181,7 +186,7 @@ internal enum class State { text, otag, tag, ctag }
 //
 //
 internal const mixin MustacheToken {
-  abstract Void render(StrBuf output, Obj? context)
+  abstract Void render(StrBuf output, Obj? context, [Str:Mustache]partials)
 
   static Obj? valueOf(Str name, Obj? context) {
     if (context == null)
@@ -217,7 +222,7 @@ internal const class IncompleteSection : MustacheToken {
     this.key = key  
     this.inverted = inverted
   }
-  override Void render(StrBuf output, Obj? context) {
+  override Void render(StrBuf output, Obj? context, [Str:Mustache]partials) {
   }
 }
 
@@ -229,7 +234,7 @@ internal const class StaticTextToken : MustacheToken
     this.staticText = staticText
   }
 
-  override Void render(StrBuf output, Obj? context) {
+  override Void render(StrBuf output, Obj? context, [Str:Mustache]partials) {
     output.add(staticText)
   }
 }
@@ -245,30 +250,30 @@ internal const class SectionToken : MustacheToken {
     this.invertedSection = invertedSection
   }
 
-  override Void render(StrBuf output, Obj? context) {
+  override Void render(StrBuf output, Obj? context, [Str:Mustache]partials) {
     Obj? value := valueOf(key, context)
 
     if (value == null) {
-      if (invertedSection) renderChildren(output, context)
+      if (invertedSection) renderChildren(output, context, partials)
       return
     }
 
     if (value is Bool) {
       Bool b := value
       if (invertedSection.xor(b))
-          renderChildren(output,context)
+          renderChildren(output,context,partials)
     } else if (value is List) {
         list := (value as List)
         if (invertedSection) {
-          if (list.isEmpty) renderChildren(output,context)
+          if (list.isEmpty) renderChildren(output,context,partials)
         } else {
-          list.each { renderChildren(output,it) }
+          list.each { renderChildren(output,it,partials) }
         }
-    } else renderChildren(output,value)
+    } else renderChildren(output,value,partials)
   }
 
-  private Void renderChildren(StrBuf output, Obj? context) {
-    children.each { it.render(output,context) }
+  private Void renderChildren(StrBuf output, Obj? context, [Str:Mustache]partials) {
+    children.each { it.render(output,context,partials) }
   }
 }
 
@@ -279,7 +284,7 @@ internal const class EscapedToken : MustacheToken {
     this.key = key
   }
 
-  override Void render(StrBuf output, Obj? context) {
+  override Void render(StrBuf output, Obj? context, [Str:Mustache]partials) {
     Obj? value := valueOf(key, context)
     if (value == null)
       return
@@ -302,10 +307,26 @@ internal const class UnescapedToken : MustacheToken {
     this.key = key 
   }
 
-  override Void render(StrBuf output, Obj? context) {
+  override Void render(StrBuf output, Obj? context, [Str:Mustache]partials) {
     Obj? value := valueOf(key,context)
     if (value == null)
       return
     output.add(value)
+  }
+}
+
+internal const class PartialToken : MustacheToken {
+  const Str key
+
+  new make(Str key) {
+    this.key = key.trim 
+  }
+
+  override Void render(StrBuf output, Obj? context, [Str:Mustache]partials) {
+    Mustache? template := partials[key]
+    if (template == null)
+      throw ArgErr("Partial \"$key\" is not defined.")
+    else
+      output.add(template.render(context, partials))
   }
 }

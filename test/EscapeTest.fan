@@ -9,8 +9,8 @@ class EscapeTest : Test
     ebuf := StrBuf()
     ubuf := StrBuf()
 
-    etoken.render(ebuf,ctx)
-    utoken.render(ubuf,ctx)
+    etoken.render(ebuf,ctx,[:])
+    utoken.render(ubuf,ctx,[:])
 
     verifyEq(ebuf.toStr, "&lt;&gt;&amp;test")
     verifyEq(ubuf.toStr, "<>&test")

@@ -4,7 +4,7 @@ class SectionTest : Test
   {
     token := SectionToken(false,"foo",[StaticTextToken("bar")])
     buf := StrBuf()
-    token.render(buf,null)
+    token.render(buf,null,[:])
     verifyEq(buf.toStr,"")
   }
 
@@ -13,8 +13,8 @@ class SectionTest : Test
     token := SectionToken(false,"foo",[StaticTextToken("bar")])
     fbuf := StrBuf()
     tbuf := StrBuf()
-    token.render(fbuf,["foo":false])
-    token.render(tbuf,["foo":true])
+    token.render(fbuf,["foo":false],[:])
+    token.render(tbuf,["foo":true],[:])
     verifyEq(fbuf.toStr,"")
     verifyEq(tbuf.toStr,"bar")
   }
@@ -26,8 +26,8 @@ class SectionTest : Test
                                           StaticTextToken(",")])
     ebuf := StrBuf()
     lbuf := StrBuf()
-    token.render(ebuf,["foo":[,]])
-    token.render(lbuf,["foo":[["value":1],["value":2],["value":3]]])
+    token.render(ebuf,["foo":[,]],[:])
+    token.render(lbuf,["foo":[["value":1],["value":2],["value":3]]],[:])
     verifyEq(ebuf.toStr,"")
     verifyEq(lbuf.toStr,"bar:1,bar:2,bar:3,")
   }
@@ -36,7 +36,7 @@ class SectionTest : Test
   {
     token := SectionToken(true,"foo",[StaticTextToken("bar")])
     buf := StrBuf()
-    token.render(buf,null)
+    token.render(buf,null,[:])
     verifyEq(buf.toStr,"bar")
   }
 
@@ -45,8 +45,8 @@ class SectionTest : Test
     token := SectionToken(true,"foo",[StaticTextToken("bar")])
     fbuf := StrBuf()
     tbuf := StrBuf()
-    token.render(fbuf,["foo":false])
-    token.render(tbuf,["foo":true])
+    token.render(fbuf,["foo":false],[:])
+    token.render(tbuf,["foo":true],[:])
     verifyEq(fbuf.toStr,"bar")
     verifyEq(tbuf.toStr,"")
   }
@@ -56,8 +56,8 @@ class SectionTest : Test
     token := SectionToken(true,"foo",[StaticTextToken("list is empty")])
     ebuf := StrBuf()
     lbuf := StrBuf()
-    token.render(ebuf,["foo":[,]])
-    token.render(lbuf,["foo":[["value":1],["value":2],["value":3]]])
+    token.render(ebuf,["foo":[,]],[:])
+    token.render(lbuf,["foo":[["value":1],["value":2],["value":3]]],[:])
     verifyEq(ebuf.toStr,"list is empty")
     verifyEq(lbuf.toStr,"")
   }
