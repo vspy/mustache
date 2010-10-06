@@ -57,11 +57,52 @@ internal class MustacheParser
     consume
     while(cur!=-1) {
       switch (state) {
-        case State.text: stext()
-        case State.otag: sotag()
-        case State.tag: stag()
-        case State.ctag: sctag()
+
+        case State.text:
+          if (cur==otag[0]) {
+            if (otag.size>1) {
+              tagPosition = 1
+              state = State.otag
+            } else {
+              addStaticText
+              state = State.tag
+            }
+          } else addCur
+
+        case State.otag: 
+          if (cur == otag[tagPosition]) {
+            if (tagPosition == otag.size-1) {
+              addStaticText
+              state = State.tag
+            } else tagPosition++;
+          } else {
+            state = State.text
+            notOtag
+          }
+
+        case State.tag:
+          if (cur==ctag[0]) {
+            if (ctag.size>1) {
+              tagPosition = 1
+              state = State.ctag
+            } else {
+              addTag
+              state = State.text
+            }
+          } else addCur 
+
+        case State.ctag:
+          if (cur == ctag[tagPosition]) {
+            if (tagPosition == ctag.size-1) {
+              addTag
+              state = State.text
+            } else tagPosition++;
+          } else {
+            state = State.tag
+            notCtag
+          } 
       }
+
       consume
     }
 
@@ -78,54 +119,6 @@ internal class MustacheParser
       }
     }
     return stack
-  }
-
-  Void stext() {
-    if (cur==otag[0]) {
-      if (otag.size>1) {
-        tagPosition = 1
-        state = State.otag
-      } else {
-        addStaticText
-        state = State.tag
-      }
-    } else addCur
-  }
-
-  Void sotag() {
-    if (cur == otag[tagPosition]) {
-      if (tagPosition == otag.size-1) {
-        addStaticText
-        state = State.tag
-      } else tagPosition++;
-    } else {
-      state = State.text
-      notOtag
-    }
-  }
-
-  Void stag() {
-    if (cur==ctag[0]) {
-      if (ctag.size>1) {
-        tagPosition = 1
-        state = State.ctag
-      } else {
-        addTag
-        state = State.text
-      }
-    } else addCur
-  }
-
-  Void sctag() {
-    if (cur == ctag[tagPosition]) {
-      if (tagPosition == ctag.size-1) {
-        addTag
-        state = State.text
-      } else tagPosition++;
-    } else {
-      state = State.tag
-      notCtag
-    }
   }
 
   Void addStaticText() {
