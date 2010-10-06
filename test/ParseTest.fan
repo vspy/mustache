@@ -80,6 +80,25 @@ class ParseTest : Test
     }
   }
 
+  Void testInvalidTags() 
+  {
+    verifyErr(ParseErr#){ 
+      template := Mustache("some text {{>}} some text".in) 
+    }
+    verifyErr(ParseErr#){ 
+      template := Mustache("some text {{<}} some text".in) 
+    }
+    verifyErr(ParseErr#){ 
+      template := Mustache("some text {{&}} some text".in) 
+    }
+    verifyErr(ParseErr#){ 
+      template := Mustache("some text {{^}}...{{/}} some text".in) 
+    }
+    verifyErr(ParseErr#){ 
+      template := Mustache("some text {{#}}...{{/}} some text".in) 
+    }
+  }
+
 }
 
 

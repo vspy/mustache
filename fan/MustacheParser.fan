@@ -117,17 +117,17 @@ internal class MustacheParser
     switch (content[0]) {
       case '!': ignore // ignore comments
       case '&': 
-        stack.add(UnescapedToken(content[1..-1]))
+        stack.add(UnescapedToken(checkContent(content[1..-1])))
       case '{':
         if (content.endsWith("}"))
-          stack.add(UnescapedToken(content[1..-2]))
+          stack.add(UnescapedToken(checkContent(content[1..-2])))
         else throw ParseErr("Unbalanced { in tag \"$content\"")
       case '^':
-        stack.add(IncompleteSection(content[1..-1], true))
+        stack.add(IncompleteSection(checkContent(content[1..-1]), true))
       case '#':
-        stack.add(IncompleteSection(content[1..-1], false))
+        stack.add(IncompleteSection(checkContent(content[1..-1]), false))
       case '/': 
-        name := content[1..-1]
+        name := checkContent(content[1..-1])
         MustacheToken[] children := [,]
 
         while(true) {
@@ -148,10 +148,10 @@ internal class MustacheParser
         }
       case '>':
       case '<':
-        stack.add(PartialToken(content[1..-1]))
+        stack.add(PartialToken(checkContent(content[1..-1])))
       case '=':
         if (content.size>2 && content.endsWith("=")) {
-          changeDelimiter := content[1..-2]
+          changeDelimiter := checkContent(content[1..-2])
           newTags := changeDelimiter.split
           if (newTags.size==2) { 
             otag = newTags[0]
@@ -165,7 +165,16 @@ internal class MustacheParser
     }
     buf.clear
   }
+
   Void ignore() {}
+
+  Str checkContent(Str content) {
+    trimmed := content.trim
+    if (trimmed.size == 0)
+      throw ParseErr("Empty tag")
+    else
+      return trimmed
+  }
 
   Void notOtag() { buf.add(otag[0..tagPosition-1]); addCur }
   Void notCtag() { buf.add(ctag[0..tagPosition-1]); addCur }
