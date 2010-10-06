@@ -7,7 +7,12 @@ internal class MustacheParser
   Str ctag
   State state
   StrBuf buf
+
+  Int line
+
+  Int prev
   Int cur
+
   MustacheToken[] stack
   Int tagPosition
   Bool curlyBraceTag 
@@ -25,6 +30,10 @@ internal class MustacheParser
     this.buf = StrBuf()
     this.tagPosition = 0
     this.stack = [,]
+
+    this.prev = -1
+    this.cur = -1
+    this.line = 1
   }
 
   MustacheToken[] parse () {
@@ -90,13 +99,13 @@ internal class MustacheParser
     switch (state) {
       case State.text: addStaticText
       case State.otag: notOtag; addStaticText
-      case State.tag: throw ParseErr("Unclosed tag $buf")
+      case State.tag: throw ParseErr("Line $line: Unclosed tag $buf")
       case State.ctag: notCtag; addStaticText
     }
     stack.each { 
       if (it is IncompleteSection) { 
         key := (it as IncompleteSection).key
-        throw ParseErr("Unclosed mustache section \"$key\"")
+        throw ParseErr("Line $line: Unclosed mustache section \"$key\"")
       }
     }
     return stack
@@ -110,9 +119,7 @@ internal class MustacheParser
   }
 
   Void addTag() {
-    Str content := buf.toStr.trim
-    if (content.size == 0)
-      throw ParseErr("Empty tag content")
+    Str content := checkContent(buf.toStr)
 
     switch (content[0]) {
       case '!': ignore // ignore comments
@@ -121,7 +128,7 @@ internal class MustacheParser
       case '{':
         if (content.endsWith("}"))
           stack.add(UnescapedToken(checkContent(content[1..-2])))
-        else throw ParseErr("Unbalanced { in tag \"$content\"")
+        else throw ParseErr("Line $line: Unbalanced \"{\" in tag \"$content\"")
       case '^':
         stack.add(IncompleteSection(checkContent(content[1..-1]), true))
       case '#':
@@ -134,7 +141,7 @@ internal class MustacheParser
           last := stack.pop
 
           if (last == null)
-            throw ParseErr("Closing unopened $name")
+            throw ParseErr("Line $line: Closing unopened $name")
 
           if (last is IncompleteSection) {
             incomplete := (last as IncompleteSection)
@@ -143,7 +150,7 @@ internal class MustacheParser
             if (key == name) {
               stack.add(SectionToken(inverted,name,children.reverse))
               break
-            } else throw ParseErr("Unclosed section $key")
+            } else throw ParseErr("Line $line: Unclosed section $key")
           } else children.add(last)
         }
       case '>':
@@ -157,9 +164,9 @@ internal class MustacheParser
             otag = newTags[0]
             ctag = newTags[1]
           } else {
-            throw ParseErr("Invalid change delimiter tag content: \"$changeDelimiter\"")
+            throw ParseErr("Line $line: Invalid change delimiter tag content: \"$changeDelimiter\"")
           }
-        } else throw ParseErr("Invalid change delimiter tag content: \"$content\"")
+        } else throw ParseErr("Line $line: Invalid change delimiter tag content: \"$content\"")
       default:
         stack.add(EscapedToken(content))
     }
@@ -171,7 +178,7 @@ internal class MustacheParser
   Str checkContent(Str content) {
     trimmed := content.trim
     if (trimmed.size == 0)
-      throw ParseErr("Empty tag")
+      throw ParseErr("Line $line: Empty tag")
     else
       return trimmed
   }
@@ -182,7 +189,13 @@ internal class MustacheParser
   Void addCur() { if (cur!=-1) buf.addChar(cur) }
 
   Void consume() {
+    this.prev = this.cur
     this.cur = this.in.readChar ?: -1
+
+    // \n, \r\n, \r
+    if ( cur == '\r' ||
+         ( cur == '\n' && prev != '\r' ) 
+       ) line++
   }
 }
 

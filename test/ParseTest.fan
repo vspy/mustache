@@ -99,6 +99,19 @@ class ParseTest : Test
     }
   }
 
+  Void testLineReporting() 
+  {
+    try {
+      template := Mustache("some text
+                            and some more
+                            {{>}} 
+                            some text again".in)
+    } catch (ParseErr e) {
+      verify(e.msg.startsWith("Line 3:"))
+      return
+    }
+    fail("Error should be thrown")
+  }
 }
 
 
