@@ -102,19 +102,25 @@ class ManPageExamplesTest : Test
   Void testPartials()
   {
       userTemplate := Mustache("<strong>{{name}}</strong>".in)
-      baseTemplate := Mustache("<h2>Names</h2>
-                                {{#names}}
-                                  {{> user}}
-                                {{/names}}".in)
-      verifyEq(
-        baseTemplate.render(["names":[["name":"Alice"],["name":"Bob"]]],
-                          ["user":userTemplate]),
-        "<h2>Names</h2>
-         
-           <strong>Alice</strong>
+      baseTemplate1 := Mustache("<h2>Names</h2>
+                                 {{#names}}
+                                   {{> user}}
+                                 {{/names}}".in)
+      baseTemplate2 := Mustache("<h2>Names</h2>
+                                 {{#names}}
+                                   {{> user}}
+                                 {{/names}}".in)
 
-           <strong>Bob</strong>
-         ")
+      ctx := ["names":[["name":"Alice"],["name":"Bob"]]]
+      partials := ["user":userTemplate]
+      refValue := "<h2>Names</h2>
+         
+                     <strong>Alice</strong>
+
+                     <strong>Bob</strong>
+                   "
+      verifyEq(baseTemplate1.render(ctx,partials), refValue)
+      verifyEq(baseTemplate2.render(ctx,partials), refValue)
   }
 
 }
