@@ -194,7 +194,10 @@ internal class MustacheParser
 }
 internal enum class State { text, otag, tag, ctag }
 
-*** base for all the token implementations
+
+**
+** base mixin for all the token implementations
+**
 internal const mixin MustacheToken {
   abstract Void render(StrBuf output, Obj? context, [Str:Mustache]partials)
 
