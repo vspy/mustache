@@ -123,6 +123,23 @@ class ManPageExamplesTest : Test
       verifyEq(baseTemplate2.render(ctx,partials), refValue)
   }
 
+
+  Void testSetDelimiters()
+  {
+    template := Mustache("* {{default_tags}}
+                          {{=<% %>=}}
+                          * <% erb_style_tags %>
+                          <%={{ }}=%>
+                          * {{ default_tags_again }}".in)
+    verifyEq(template.render(["default_tags":"Line one",
+                              "erb_style_tags":"Line two",
+                              "default_tags_again":"Line three"]),
+             "* Line one
+
+              * Line two
+
+              * Line three")
+  }
 }
 
 

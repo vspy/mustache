@@ -141,9 +141,6 @@ internal class MustacheParser
         stack.add(IncompleteSection(content[1..-1], true))
       case '#':
         stack.add(IncompleteSection(content[1..-1], false))
-      case '>':
-      case '<':
-        stack.add(PartialToken(content[1..-1]))
       case '/': 
         name := content[1..-1]
         MustacheToken[] children := [,]
@@ -164,6 +161,21 @@ internal class MustacheParser
             } else throw ParseErr("Unclosed section $key")
           } else children.add(last)
         }
+      case '>':
+      case '<':
+        stack.add(PartialToken(content[1..-1]))
+      case '=':
+        if (content.size>2 && content.endsWith("=")) {
+          changeDelimiter := content[1..-2]
+          newTags := changeDelimiter.split
+          if (newTags.size==2) { 
+            otag = newTags[0]
+            ctag = newTags[1]
+            typeof.pod.log.info("new delimiters are \"$otag\",\"$ctag\"")
+          } else {
+            throw ParseErr("Invalid change delimiter tag content: \"$changeDelimiter\"")
+          }
+        } else throw ParseErr("Invalid change delimiter tag content: \"$content\"")
       default:
         stack.add(EscapedToken(content))
     }
@@ -182,9 +194,7 @@ internal class MustacheParser
 }
 internal enum class State { text, otag, tag, ctag }
 
-//
-//
-//
+*** base for all the token implementations
 internal const mixin MustacheToken {
   abstract Void render(StrBuf output, Obj? context, [Str:Mustache]partials)
 
