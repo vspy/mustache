@@ -31,7 +31,7 @@ class ManPageExamplesTest : Test
                         ]
                       ),
                       "* Chris
-                       *
+                       * 
                        * &lt;b&gt;GitHub&lt;/b&gt;
                        * <b>GitHub</b>")
   }

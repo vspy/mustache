@@ -36,7 +36,8 @@ internal class MustacheParser
   StrBuf buf
   Int cur
   MustacheToken[] stack
-  Int tagPosition 
+  Int tagPosition
+  Bool curlyBraceTag 
 
   new make(InStream in, Str otag, Str ctag) {
     if (otag.isEmpty)
@@ -73,6 +74,7 @@ internal class MustacheParser
           if (cur == otag[tagPosition]) {
             if (tagPosition == otag.size-1) {
               addStaticText
+              curlyBraceTag = false
               state = State.tag
             } else tagPosition++;
           } else {
@@ -81,7 +83,13 @@ internal class MustacheParser
           }
 
         case State.tag:
-          if (cur==ctag[0]) {
+          if (buf.isEmpty && cur == '{') {
+            curlyBraceTag = true
+            addCur
+          } else if (curlyBraceTag && cur == '}') {
+            curlyBraceTag = false
+            addCur
+          } else if (cur==ctag[0]) {
             if (ctag.size>1) {
               tagPosition = 1
               state = State.ctag
@@ -175,7 +183,6 @@ internal class MustacheParser
           if (newTags.size==2) { 
             otag = newTags[0]
             ctag = newTags[1]
-            typeof.pod.log.info("new delimiters are \"$otag\",\"$ctag\"")
           } else {
             throw ParseErr("Invalid change delimiter tag content: \"$changeDelimiter\"")
           }
