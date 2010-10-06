@@ -99,7 +99,7 @@ internal class MustacheParser
     switch (state) {
       case State.text: addStaticText
       case State.otag: notOtag; addStaticText
-      case State.tag: throw ParseErr("Line $line: Unclosed tag $buf")
+      case State.tag: throw ParseErr("Line $line: Unclosed tag \"$buf\"")
       case State.ctag: notCtag; addStaticText
     }
     stack.each { 
@@ -141,7 +141,7 @@ internal class MustacheParser
           last := stack.pop
 
           if (last == null)
-            throw ParseErr("Line $line: Closing unopened $name")
+            throw ParseErr("Line $line: Closing unopened section \"$name\"")
 
           if (last is IncompleteSection) {
             incomplete := (last as IncompleteSection)
@@ -150,7 +150,7 @@ internal class MustacheParser
             if (key == name) {
               stack.add(SectionToken(inverted,name,children.reverse))
               break
-            } else throw ParseErr("Line $line: Unclosed section $key")
+            } else throw ParseErr("Line $line: Unclosed section \"$key\"")
           } else children.add(last)
         }
       case '>':
