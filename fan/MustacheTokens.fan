@@ -135,7 +135,7 @@ internal const class PartialToken : MustacheToken {
   const Str key
 
   new make(Str key) {
-    this.key = key.trim 
+    this.key = key
   }
 
   override Void render(StrBuf output, Obj? context, [Str:Mustache]partials) {
