@@ -2,8 +2,8 @@ class EscapeTest : Test
 {
   Void testEscapedOutput()
   {
-    etoken := MustacheEscapedToken("foo")
-    utoken := MustacheUnescapedToken("foo")
+    etoken := EscapedToken("foo")
+    utoken := UnescapedToken("foo")
     ctx := ["foo":"<>&test"]
 
     ebuf := StrBuf()
@@ -12,7 +12,7 @@ class EscapeTest : Test
     etoken.render(ebuf,ctx)
     utoken.render(ubuf,ctx)
 
-    verifyEq(ebuf.toStr, "&lt;&rt;&amp;test")
+    verifyEq(ebuf.toStr, "&lt;&gt;&amp;test")
     verifyEq(ubuf.toStr, "<>&test")
   }
 }

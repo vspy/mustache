@@ -55,10 +55,15 @@ internal class MustacheParser
     switch (state) {
       case State.text: addStaticText
       case State.otag: notOtag; addStaticText
-      case State.tag: throw ParseErr("Unclosed tag")
+      case State.tag: throw ParseErr("Unclosed tag $buf")
       case State.ctag: notCtag; addStaticText
     }
-    //TODO: check for unclosed sections
+    stack.each { 
+      if (it is IncompleteSection) { 
+        key := (it as IncompleteSection).key
+        throw ParseErr("Unclosed mustache section \"$key\"")
+      }
+    }
     return stack
   }
 
@@ -123,16 +128,43 @@ internal class MustacheParser
       throw ParseErr("Empty tag content")
 
     switch (content[0]) {
-      case '&':
+      case '!': ignore // ignore comments
+      case '&': 
+        stack.add(UnescapedToken(content[1..-1]))
       case '{':
+        if (content.endsWith("}"))
+          stack.add(UnescapedToken(content[1..-2]))
+        else throw ParseErr("Unbalanced { in tag \"$content\"")
+      case '^':
+        stack.add(IncompleteSection(content[1..-1], true))
       case '#':
-        stack.add(IncompleteMustacheSection(content[1..-1]))
-      case '/':
+        stack.add(IncompleteSection(content[1..-1], false))
+      case '/': 
+        name := content[1..-1]
+        MustacheToken[] children := [,]
+
+        while(true) {
+          last := stack.pop
+
+          if (last == null)
+            throw ParseErr("Closing unopened $name")
+
+          if (last is IncompleteSection) {
+            incomplete := (last as IncompleteSection)
+            inverted := incomplete.inverted
+            key := incomplete.key
+            if (key == name) {
+              stack.add(SectionToken(inverted,name,children.reverse))
+              break
+            } else throw ParseErr("Unclosed section $key")
+          } else children.add(last)
+        }
       default:
-        stack.add(MustacheEscapedToken(content))
+        stack.add(EscapedToken(content))
     }
     buf.clear
   }
+  Void ignore() {}
 
   Void notOtag() { buf.add(otag[0..tagPosition-1]); addCur }
   Void notCtag() { buf.add(ctag[0..tagPosition-1]); addCur }
@@ -154,28 +186,36 @@ internal const mixin MustacheToken {
   static Obj? valueOf(Str name, Obj? context) {
     if (context == null)
       return null
-    else if (context is Map) 
-      return (context as Map).get(name)
+
+    value := null
+
+    if (context is Map) 
+      value = (context as Map).get(name)
     else {
       slot := context.typeof.slot(name,false)
       if (slot == null) return null
 
       if (slot is Field)
-        return (slot as Field).get(context)
+        value = (slot as Field).get(context)
 
       if (slot is Method)
-        return (slot as Method).call(context)
-
-      return null
+        value = (slot as Method).call(context)
     }
+
+    if (value is Func) 
+      return (value as Func).call()
+    else 
+      return value
   }
 
 }
 
-internal const class IncompleteMustacheSection : MustacheToken {
+internal const class IncompleteSection : MustacheToken {
   const Str key
-  new make(Str key) {
+  const Bool inverted
+  new make(Str key,Bool inverted) {
     this.key = key  
+    this.inverted = inverted
   }
   override Void render(StrBuf output, Obj? context) {
   }
@@ -194,24 +234,37 @@ internal const class StaticTextToken : MustacheToken
   }
 }
 
-internal const class MustacheSectionToken : MustacheToken {
+internal const class SectionToken : MustacheToken {
   const Str key
   const MustacheToken[]children
+  const Bool invertedSection
 
-  new make(Str key, MustacheToken[] children) {
+  new make(Bool invertedSection, Str key, MustacheToken[] children) {
     this.key = key
     this.children = children
+    this.invertedSection = invertedSection
   }
 
   override Void render(StrBuf output, Obj? context) {
     Obj? value := valueOf(key, context)
-    if (value == null)
+
+    if (value == null) {
+      if (invertedSection) renderChildren(output, context)
       return
+    }
+
     if (value is Bool) {
-      switch (value) { case true: renderChildren(output,context) }
-    } else if (value is List)
-        (value as List).each { renderChildren(output,it) }
-    else renderChildren(output,value)
+      Bool b := value
+      if (invertedSection.xor(b))
+          renderChildren(output,context)
+    } else if (value is List) {
+        list := (value as List)
+        if (invertedSection) {
+          if (list.isEmpty) renderChildren(output,context)
+        } else {
+          list.each { renderChildren(output,it) }
+        }
+    } else renderChildren(output,value)
   }
 
   private Void renderChildren(StrBuf output, Obj? context) {
@@ -219,7 +272,7 @@ internal const class MustacheSectionToken : MustacheToken {
   }
 }
 
-internal const class MustacheEscapedToken : MustacheToken {
+internal const class EscapedToken : MustacheToken {
   const Str key
 
   new make(Str key) {
@@ -234,7 +287,7 @@ internal const class MustacheEscapedToken : MustacheToken {
     str.each {
       switch (it) {
         case '<': output.add("&lt;")
-        case '>': output.add("&rt;")
+        case '>': output.add("&gt;")
         case '&': output.add("&amp;")
         default: output.addChar(it)
       }
@@ -242,7 +295,7 @@ internal const class MustacheEscapedToken : MustacheToken {
   }
 }
 
-internal const class MustacheUnescapedToken : MustacheToken {
+internal const class UnescapedToken : MustacheToken {
   const Str key
 
   new make(Str key) {
