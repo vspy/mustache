@@ -60,30 +60,43 @@ internal const class StaticTextToken : MustacheToken
 }
 
 internal const class MustacheSectionToken : MustacheToken {
-  const Str value
+  const Str key
   const MustacheToken[]children
 
-  new make(Str value,MustacheToken[] children) {
-    this.value = value 
+  new make(Str key, MustacheToken[] children) {
+    this.key = key
     this.children = children
   }
 
   override Void render(StrBuf output, Obj? context) {
-    //TODO: check value
+    Obj? value := valueOf(key, context)
+    if (value == null)
+      return
+    if (value is Bool) {
+      switch (value) { case true: renderChildren(output,context) }
+    } else if (value is List)
+        (value as List).each { renderChildren(output,it) }
+    else renderChildren(output,value)
+  }
+
+  private Void renderChildren(StrBuf output, Obj? context) {
     children.each { it.render(output,context) }
   }
 }
 
 internal const class MustacheEscapedToken : MustacheToken {
-  const Str value
+  const Str key
 
-  new make(Str value) {
-    this.value = value 
+  new make(Str key) {
+    this.key = key
   }
 
   override Void render(StrBuf output, Obj? context) {
-    Str toEscape := valueOf(value, context)
-    toEscape.each {
+    Obj? value := valueOf(key, context)
+    if (value == null)
+      return
+    Str str := value.toStr
+    str.each {
       switch (it) {
         case '<': output.add("&lt;")
         case '>': output.add("&rt;")
@@ -95,13 +108,16 @@ internal const class MustacheEscapedToken : MustacheToken {
 }
 
 internal const class MustacheUnescapedToken : MustacheToken {
-  const Str value
+  const Str key
 
-  new make(Str value) {
-    this.value = value 
+  new make(Str key) {
+    this.key = key 
   }
 
   override Void render(StrBuf output, Obj? context) {
-    output.add(valueOf(value, context))
+    Obj? value := valueOf(key,context)
+    if (value == null)
+      return
+    output.add(value)
   }
 }
