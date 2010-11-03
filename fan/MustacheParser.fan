@@ -1,6 +1,6 @@
-internal enum class State { text, otag, tag, ctag }
+enum class State { text, otag, tag, ctag }
 
-internal class MustacheParser
+class MustacheParser
 {
   InStream in
   Str otag := "{{"
@@ -17,6 +17,7 @@ internal class MustacheParser
   Int tagPosition := 0
   Bool curlyBraceTag 
 
+  |Str->MustacheToken| partialTokenCreator := |Str key -> MustacheToken| { PartialToken.make(key) }
   
   new make(|This|? f) {
     f?.call(this)
@@ -141,7 +142,7 @@ internal class MustacheParser
         }
       case '>':
       case '<':
-        stack.add(PartialToken(checkContent(content[1..-1])))
+        stack.add(partialTokenCreator.call(checkContent(content[1..-1])))
       case '=':
         if (content.size>2 && content.endsWith("=")) {
           changeDelimiter := checkContent(content[1..-2])

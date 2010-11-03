@@ -1,7 +1,7 @@
 **
 ** base mixin for all the token implementations
 **
-internal const mixin MustacheToken {
+const mixin MustacheToken {
   abstract Void render(StrBuf output, Obj? context, [Str:Mustache]partials)
 
   static Obj? valueOf(Str name, Obj? context) {
