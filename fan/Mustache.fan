@@ -46,7 +46,15 @@ const class Mustache
   new make(InStream templateStream,
           Str otag:="{{", 
           Str ctag:="}}") {
-    this.compiledTemplate = MustacheParser(templateStream,otag,ctag).parse
+    this.compiledTemplate = MustacheParser { 
+      in = templateStream
+      it.otag = otag
+      it.ctag = ctag
+    }.parse
+  }
+  
+  new forParser(MustacheParser parser) {
+    this.compiledTemplate = parser.parse
   }
 
   Str render(Obj? context:=null, [Str:Mustache] partials:=[:]) {

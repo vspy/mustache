@@ -3,37 +3,23 @@ internal enum class State { text, otag, tag, ctag }
 internal class MustacheParser
 {
   InStream in
-  Str otag
-  Str ctag
-  State state
-  StrBuf buf
+  Str otag := "{{"
+  Str ctag := "}}"
+  State state := State.text
+  StrBuf buf := StrBuf()
 
-  Int line
+  Int line := 1
 
-  Int prev
-  Int cur
+  Int prev := -1
+  Int cur := -1
 
-  MustacheToken[] stack
-  Int tagPosition
+  MustacheToken[] stack := [,]
+  Int tagPosition := 0
   Bool curlyBraceTag 
 
-  new make(InStream in, Str otag, Str ctag) {
-    if (otag.isEmpty)
-      throw ArgErr("otag should not be empty")
-    if (ctag.isEmpty)
-      throw ArgErr("ctag should not be empty")
-
-    this.in = in
-    this.otag = otag
-    this.ctag = ctag
-    this.state = State.text
-    this.buf = StrBuf()
-    this.tagPosition = 0
-    this.stack = [,]
-
-    this.prev = -1
-    this.cur = -1
-    this.line = 1
+  
+  new make(|This|? f) {
+    f?.call(this)
   }
 
   MustacheToken[] parse () {
