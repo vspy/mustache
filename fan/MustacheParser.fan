@@ -16,12 +16,8 @@ class MustacheParser
   MustacheToken[] stack := [,]
   Int tagPosition := 0
   Bool curlyBraceTag 
-
-  |Str->MustacheToken| partialTokenCreator := |Str key -> MustacheToken| { PartialToken.make(key) }
   
-  new make(|This|? f) {
-    f?.call(this)
-  }
+  new make(|This|? f := null) { f?.call(this) }
 
   MustacheToken[] parse () {
     consume
@@ -111,10 +107,10 @@ class MustacheParser
     switch (content[0]) {
       case '!': ignore // ignore comments
       case '&': 
-        stack.add(UnescapedToken(checkContent(content[1..-1])))
+        stack.add(unescapedToken(content[1..-1]))
       case '{':
         if (content.endsWith("}"))
-          stack.add(UnescapedToken(checkContent(content[1..-2])))
+          stack.add(unescapedToken(content[1..-2]))
         else throw ParseErr("Line $line: Unbalanced \"{\" in tag \"$content\"")
       case '^':
         stack.add(IncompleteSection(checkContent(content[1..-1]), true))
@@ -142,7 +138,7 @@ class MustacheParser
         }
       case '>':
       case '<':
-        stack.add(partialTokenCreator.call(checkContent(content[1..-1])))
+        stack.add(partialToken(content[1..-1]))
       case '=':
         if (content.size>2 && content.endsWith("=")) {
           changeDelimiter := checkContent(content[1..-2])
@@ -155,11 +151,23 @@ class MustacheParser
           }
         } else throw ParseErr("Line $line: Invalid change delimiter tag content: \"$content\"")
       default:
-        stack.add(EscapedToken(content))
+        stack.add(defaultToken(content))
     }
     buf.clear
   }
 
+  virtual MustacheToken partialToken(Str content) {
+    PartialToken(checkContent(content))
+  } 
+
+  virtual MustacheToken defaultToken(Str content) {
+    EscapedToken(content)
+  }
+  
+  virtual MustacheToken unescapedToken(Str content) {
+    UnescapedToken(checkContent(content))
+  }
+  
   Void ignore() {}
 
   Str checkContent(Str content) {
